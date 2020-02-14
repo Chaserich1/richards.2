@@ -8,13 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
-extern int helpMessageFlg;    // -h
-extern int maxChildrenFlg;    // -n x
-extern int childrenInSysFlg;  // -s x
-extern int startOfSeqFlg;     // -b B
-extern int incrementFlg;      // -i I
-extern int outputFileFlg;     // -o
+#include <unistd.h>
 
 void flgsPassedIn(int argc, char **argv);
 void displayHelpMessage();

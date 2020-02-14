@@ -5,40 +5,40 @@
 
 #include "CommandOptions.h"
 
-//Initialize all flags as false until they are entered
-int helpMessageFlg = 0;    // -h
-int maxChildrenFlg = 0;    // -n x
-int childrenInSysFlg = 0;  // -s x
-int startOfSeqFlg = 0;     // -b B
-int incrementFlg = 0;      // -i I
-int outputFileFlg = 0;     // -o
-
 void flgsPassedIn(int argc, char **argv) {
 
     // Used getopt to go through the parameter flgs that the user passes  
-    int c = 0;
+    int c;
+    int maxChildren = 4, childLimit = 2, startOfSeq = 0, incrementVal = NULL;
+    char *outFile;
 
+    //Why didn't I use optarg on homework 1....
     while((c = getopt(argc, argv, "hn:s:b:i:o:")) != -1) 
     {
         switch(c) 
         {
             case 'h':
-                helpMessageFlg = 1;
+                displayHelpMessage();
                 break;
             case 'n':
-                maxChildrenFlg = 1;
+                maxChildren = atoi(optarg);
+                printf("%d\n", maxChildren);
                 break;
             case 's':
-                childrenInSysFlg = 1;
+                childLimit = atoi(optarg);
+                printf("%d\n", childLimit);
                 break;
             case 'b':
-                startOfSeqFlg = 1;
+                startOfSeq = atoi(optarg);
+                printf("%d\n", startOfSeq);
                 break;
             case 'i':
-                incrementFlg = 1;
+                incrementVal = atoi(optarg);
+                printf("%d\n", incrementVal);
                 break;
             case 'o':
-                outputFileFlg = 1;
+                outFile = optarg;
+                printf("%s\n", outFile);
                 break;
             case '?':
                 fprintf(stderr, "%s: Error: Invalid option, use -h to see the available options.\n", argv[0]);
@@ -46,7 +46,6 @@ void flgsPassedIn(int argc, char **argv) {
                 exit(1); 
         }
     }
-    
 }
 
 void displayHelpMessage() 
