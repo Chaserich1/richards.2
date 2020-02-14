@@ -10,11 +10,7 @@ int main(int argc, char* argv[])
  
     flgsPassedIn(argc, argv);
    
-    if(helpMessageFlg)
-    {
-        displayHelpMessage();
-        exit(1);
-    }
+   
 
 
 
