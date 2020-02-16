@@ -74,8 +74,11 @@ void sharedMemoryWork()
         /* FOR INITIAL TESTING: print the child pid 
         printf("The child pid is %ld\n", (long)getpid()); */
         
-        /* FOR INITIAL TESTING: Use execl to have the child run ls -l 
-        childExec = execl("/bin/ls", "ls", "-l", NULL); */
+        // FOR INITIAL TESTING: Use execl to have the child run ls -l 
+        //childExec = execl("/bin/ls", "ls", "-l", NULL); 
+
+        //Use execl to run the oss executable
+        childExec = execl("./prime", "prime", NULL);
 
         if(childExec == -1)
         {
@@ -91,7 +94,7 @@ void sharedMemoryWork()
 
 
     //Detach and remove the segment of shared memory 
-    sharedMemDetach = deallocateMem(sharedMemSegment, sharedMemAttach);
+    sharedMemDetach = deallocateMem(sharedMemSegment, sharedMemAttachInt);
 
     //If shmdt is unsuccessful it returns -1 so check for this
     if(sharedMemDetach == -1)
