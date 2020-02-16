@@ -8,6 +8,14 @@
 int main(int argc, char* argv[]) 
 {
     flgsPassedIn(argc, argv);
+    
+    sharedMemoryWork(); 
+   
+    return 0;   
+}
+
+void sharedMemoryWork() 
+{
 
     int sharedMemSegment, sharedMemDetach;
     char *sharedMemAttach;
@@ -24,7 +32,7 @@ int main(int argc, char* argv[])
     if(sharedMemSegment == -1) 
     {
         perror("exe: Error: shmget failed to allocate shared memory");
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
     //Attach the memory to our space
@@ -36,17 +44,32 @@ int main(int argc, char* argv[])
         perror("exe: Error: shmat failed to attach shared memory");
         if(shmctl(sharedMemSegment, IPC_RMID, NULL) == -1)
             perror("exe: Error: shmctl failed to remove the shared memory segment");
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
-    /* FOR INTIAL TESTING: Use the shared memory or read it
+    /* FOR INTIAL TESTING: Use the shared memory or read it 
     if(argc >= 2) 
         strncpy(sharedMemAttach, argv[1], sizeof(int));
     printf("The segment has the following: %s\n", sharedMemAttach);
-    */
+    */ 
 
-    
-   
+    //Fork and exec one child process and attach it to the shared memory
+    pid_t childpid;
+    childpid = fork();
+
+    //Fork returns -1 if it fails
+    if(childpid == -1)
+    {
+        perror("oss: Error: Child process fork failed");
+        exit(EXIT_FAILURE);
+    }
+
+    //Fork returns 0 to the child if successful
+    if(childpid == 0) /* Child pid */
+        printf("The child pid is %ld\n", (long)getpid());
+    else /* Parent pid */
+        printf("The parent pid is %ld\n", (long)getpid());
+
     //Detach and remove the segment of shared memory 
     sharedMemDetach = deallocateMem(sharedMemSegment, sharedMemAttach);
 
@@ -54,10 +77,8 @@ int main(int argc, char* argv[])
     if(sharedMemDetach == -1)
     {
         perror("exe: Error: shmdt failed to detach shared memory");
-        return 1;
+        exit(EXIT_FAILURE);
     }
- 
-    return 0;
 }
 
 int deallocateMem(int shmid, void *shmaddr) 

@@ -18,4 +18,7 @@
 //Prototype for deallocating the shared memory
 int deallocateMem(int shmid, void *shmaddr);
 
+//Prototype for working with the shared memory from master
+void sharedMemoryWork();
+
 #endif
