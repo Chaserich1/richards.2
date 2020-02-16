@@ -18,6 +18,7 @@ void sharedMemoryWork()
 {
 
     int sharedMemSegment, sharedMemDetach;
+    int childExec;
     char *sharedMemAttach;
     key_t key;
 
@@ -37,9 +38,10 @@ void sharedMemoryWork()
 
     //Attach the memory to our space
     sharedMemAttach = shmat(sharedMemSegment, NULL, 0);
+    int *sharedMemAttachInt = (int *)sharedMemAttach;    
 
     //If shmat is unsuccessful it returns -1 so check for this
-    if((int *)sharedMemAttach == (void *)-1)
+    if(sharedMemAttachInt == (void *)-1)
     {
         perror("exe: Error: shmat failed to attach shared memory");
         if(shmctl(sharedMemSegment, IPC_RMID, NULL) == -1)
@@ -50,8 +52,10 @@ void sharedMemoryWork()
     /* FOR INTIAL TESTING: Use the shared memory or read it 
     if(argc >= 2) 
         strncpy(sharedMemAttach, argv[1], sizeof(int));
-    printf("The segment has the following: %s\n", sharedMemAttach);
-    */ 
+    printf("The segment has the following: %s\n", sharedMemAttach); */
+     
+
+    sharedMemAttachInt[0] = 1;
 
     //Fork and exec one child process and attach it to the shared memory
     pid_t childpid;
@@ -66,9 +70,25 @@ void sharedMemoryWork()
 
     //Fork returns 0 to the child if successful
     if(childpid == 0) /* Child pid */
-        printf("The child pid is %ld\n", (long)getpid());
+    { 
+        /* FOR INITIAL TESTING: print the child pid 
+        printf("The child pid is %ld\n", (long)getpid()); */
+        
+        /* FOR INITIAL TESTING: Use execl to have the child run ls -l 
+        childExec = execl("/bin/ls", "ls", "-l", NULL); */
+
+        if(childExec == -1)
+        {
+            perror("oss: Error: Child failed to exec ls\n");
+            exit(EXIT_FAILURE);
+        }       
+    }
     else /* Parent pid */
         printf("The parent pid is %ld\n", (long)getpid());
+
+    //Wait for the child to finish
+    wait(NULL);
+
 
     //Detach and remove the segment of shared memory 
     sharedMemDetach = deallocateMem(sharedMemSegment, sharedMemAttach);
