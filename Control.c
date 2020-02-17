@@ -21,6 +21,8 @@ void sharedMemoryWork()
     int childExec;
     char *sharedMemAttach;
     key_t key;
+    struct timespec startTimer = {0,0}, stopTimer = {0,0};
+    double totalChildTime = 0;
 
     //Key returns a key based on the path and id
     key = ftok(".",'m');
@@ -59,6 +61,8 @@ void sharedMemoryWork()
 
     //Fork and exec one child process and attach it to the shared memory
     pid_t childpid;
+    //Start the timer then fork
+    clock_gettime(CLOCK_MONOTONIC, &startTimer);
     childpid = fork();
 
     //Fork returns -1 if it fails
@@ -86,15 +90,26 @@ void sharedMemoryWork()
             exit(EXIT_FAILURE);
         }       
     }
-    else /* Parent pid */
-        printf("The parent pid is %ld\n", (long)getpid());
-
+    /* Parent pid */
+        //printf("The parent pid is %ld\n", (long)getpid());
+        /*//Stop the timer 
+        clock_gettime(CLOCK_MONOTONIC, &stopTimer); 
+        //Get the total time by subtracting the starting time from the stoping time  
+        totalChildTime = ((double)stopTimer.tv_sec + 1.0e-9 * stopTimer.tv_nsec) - ((double)startTimer.tv_sec + 1.0e-9*startTimer.tv_nsec);
+        printf("Total time for the child process: %.5f seconds\n", totalChildTime);
+        */
     //Wait for the child to finish
     wait(NULL);
+    //Stop the timer
+    clock_gettime(CLOCK_MONOTONIC, &stopTimer);
+    //Get the total time by subtracting the starting time from the stoping time
+    totalChildTime = ((double)stopTimer.tv_sec + 1.0e-9 * stopTimer.tv_nsec) - ((double)startTimer.tv_sec + 1.0e-9*startTimer.tv_nsec);
+    printf("Total time for the child process: %.5f seconds\n", totalChildTime);    
 
 
+    sharedMemDetach = shmdt(sharedMemAttachInt);
     //Detach and remove the segment of shared memory 
-    sharedMemDetach = deallocateMem(sharedMemSegment, sharedMemAttachInt);
+    //sharedMemDetach = deallocateMem(sharedMemSegment, sharedMemAttachInt);
 
     //If shmdt is unsuccessful it returns -1 so check for this
     if(sharedMemDetach == -1)

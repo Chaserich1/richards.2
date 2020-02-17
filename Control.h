@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <string.h>
+#include <time.h>
 
 //Prototype for deallocating the shared memory
 int deallocateMem(int shmid, void *shmaddr);
