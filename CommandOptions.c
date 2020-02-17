@@ -23,6 +23,11 @@ void flgsPassedIn(int argc, char **argv) {
             case 'n':
                 maxChildren = atoi(optarg);
                 printf("%d\n", maxChildren);
+                if(maxChildren > 20)
+                {
+                    printf("The max number of children allowed is 20, setting to -n 20");
+                    maxChildren = 20;
+                }
                 break;
             case 's':
                 childLimit = atoi(optarg);

@@ -15,11 +15,14 @@
 #include <sys/ipc.h>
 #include <string.h>
 #include <time.h>
+#include <signal.h>
 
 //Prototype for deallocating the shared memory
 int deallocateMem(int shmid, void *shmaddr);
 
 //Prototype for working with the shared memory from master
 void sharedMemoryWork();
+
+void sigHandler(int sig);
 
 #endif
