@@ -10,6 +10,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+extern int maxChildren;
+extern int childLimit;
+extern int startOfSeq;
+extern int incrementVal;
+
 void flgsPassedIn(int argc, char **argv);
 void displayHelpMessage();
 

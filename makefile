@@ -5,8 +5,8 @@ CFLAGS = -g
 ALL_CFLAGS = -I. $(CFLAGS)
 TARGET1 = oss
 TARGET2 = prime
-OBJS1 = Control.o CommandOptions.o
-OBJS2 = ChildProcess.o CommandOptions.o 
+OBJS1 = Control.o 
+OBJS2 = ChildProcess.o 
 
 all: $(TARGET1) $(TARGET2)
 

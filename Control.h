@@ -6,10 +6,9 @@
 #ifndef CONTROL_H
 #define CONTROL_H
 
-#include "CommandOptions.h"
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/shm.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -24,5 +23,7 @@ int deallocateMem(int shmid, void *shmaddr);
 void sharedMemoryWork();
 
 void sigHandler(int sig);
+
+void displayHelpMessage();
 
 #endif

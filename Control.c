@@ -7,19 +7,63 @@
 
 int main(int argc, char* argv[]) 
 {
-    flgsPassedIn(argc, argv);
+    //flgsPassedIn(argc, argv);
     
+    int c;
+    int maxChildren = 4, childLimit = 2, startOfSeq = 0, incrementVal = NULL;
+    char *outFile;
+
+    /* Why didn't I use optarg on homework 1.... */
+    while((c = getopt(argc, argv, "hn:s:b:i:o:")) != -1) 
+    {
+        switch(c) 
+        {
+            case 'h':
+                displayHelpMessage();
+                break;
+            case 'n':
+                maxChildren = atoi(optarg);
+                printf("%d\n", maxChildren);
+                if(maxChildren > 20)
+                {
+                    printf("The max number of children allowed is 20, setting to -n 20");
+                    maxChildren = 20;
+                }
+                break;
+            case 's':
+                childLimit = atoi(optarg);
+                printf("%d\n", childLimit);
+                break;
+            case 'b':
+                startOfSeq = atoi(optarg);
+                printf("%d\n", startOfSeq);
+                break;
+            case 'i':
+                incrementVal = atoi(optarg);
+                printf("%d\n", incrementVal);
+                break;
+            case 'o':
+                outFile = optarg;
+                printf("%s\n", outFile);
+                break;
+            case '?':
+                fprintf(stderr, "%s: Error: Invalid option, use -h to see the available options.\n", argv[0]);
+                perror("");
+                exit(1); 
+        }
+    }   
+ 
     signal(SIGALRM, sigHandler);
     alarm(2);
 
     signal(SIGINT, sigHandler);   
  
-    sharedMemoryWork(); 
+    sharedMemoryWork(maxChildren); 
    
     return 0;   
 }
 
-void sharedMemoryWork() 
+void sharedMemoryWork(int maxChildren) 
 {
 
     int sharedMemSegment, sharedMemDetach;
@@ -63,9 +107,9 @@ void sharedMemoryWork()
     printf("The segment has the following: %s\n", sharedMemAttach); */
      
 
-    sharedMemAttachInt[0] = 1;
+    sharedMemAttachInt[0] = maxChildren;
 
-    while (childCounter < 2)
+    while (childCounter < maxChildren)
     {
         //Fork and exec one child process and attach it to the shared memory
         pid_t childpid;
@@ -90,7 +134,8 @@ void sharedMemoryWork()
             // FOR INITIAL TESTING: Use execl to have the child run ls -l 
             //childExec = execl("/bin/ls", "ls", "-l", NULL); 
 
-            /* for(;;)
+            /*  Testing for Signals
+               for(;;)
                    ;  */
 
             //Use execl to run the oss executable
@@ -149,4 +194,18 @@ void sigHandler(int sig)
         printf("Ctrl-c was entered\n");
         exit(0);
     }
+}
+
+void displayHelpMessage() 
+{
+    printf("\n---------------------------------------------------------\n");
+    printf("See below for the options:\n\n");
+    printf("-h    : Instructions for running the project.\n");
+    printf("-n x  : Maximum number of child processes oss will ever create (Default 4).\n"); 
+    printf("-s x  : Number of children allowed to exist in the system at same time (Default 2).\n");
+    printf("-b B  : Start of the sequence of numbers to be tested for primality.\n");
+    printf("-i I  : Increment between numbers that we test.\n");
+    printf("-o filename  : Output file.\n");
+    printf("\n---------------------------------------------------------\n"); 
+    exit(0);
 }
