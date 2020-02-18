@@ -58,12 +58,12 @@ int main(int argc, char* argv[])
 
     signal(SIGINT, sigHandler);   
  
-    sharedMemoryWork(maxChildren); 
+    sharedMemoryWork(maxChildren, childLimit, startOfSeq, incrementVal, outFile); 
    
     return 0;   
 }
 
-void sharedMemoryWork(int maxChildren) 
+void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incrementVal, char* outFile) 
 {
 
     int sharedMemSegment, sharedMemDetach;
@@ -108,58 +108,75 @@ void sharedMemoryWork(int maxChildren)
      
 
     sharedMemAttachInt[0] = maxChildren;
+    sharedMemAttachInt[1] = childLimit;
+    sharedMemAttachInt[2] = startOfSeq;
+    sharedMemAttachInt[3] = incrementVal;
+    //sharedMemAttachInt[4] = 0;
+    //sharedMemAttachInt[5] = 0;
+    
+    pid_t childPids[maxChildren], child;
+    int i = 0;
+    int status;
+    int childrenInSystem;
+    int completedChildren;
+    int max = maxChildren;
 
-    while (childCounter < maxChildren)
+    while(maxChildren != 0 || completedChildren != max)
     {
-        //Fork and exec one child process and attach it to the shared memory
-        pid_t childpid;
+ 
         //Start the timer then fork
         clock_gettime(CLOCK_MONOTONIC, &startTimer);
-        childpid = fork();
-        wait(NULL);
-        childCounter++;
-        //Fork returns -1 if it fails
-        if(childpid == -1)
-        {
-            perror("oss: Error: Child process fork failed");
-            exit(EXIT_FAILURE);
-        }
-
-        //Fork returns 0 to the child if successful
-        if(childpid == 0) /* Child pid */
-        { 
-            /* FOR INITIAL TESTING: print the child pid 
-            printf("The child pid is %ld\n", (long)getpid()); */
         
-            // FOR INITIAL TESTING: Use execl to have the child run ls -l 
-            //childExec = execl("/bin/ls", "ls", "-l", NULL); 
+        if(maxChildren != 0 && childrenInSystem < childLimit)
+        {
 
-            /*  Testing for Signals
-               for(;;)
-                   ;  */
+            childCounter++;
+            i++;
+            childrenInSystem++;
+            maxChildren--;
 
-            //Use execl to run the oss executable
-            childExec = execl("./prime", "prime", NULL);
-
-            if(childExec == -1)
+            childPids[i] = fork();
+            //Fork returns -1 if it fails
+            if(childPids[i] == -1)
             {
-                perror("oss: Error: Child failed to exec ls\n");
+                perror("oss: Error: Child process fork failed");
                 exit(EXIT_FAILURE);
-            }       
-        }
-        /* Parent pid */
-            //printf("The parent pid is %ld\n", (long)getpid());
-            
-        //Wait for the child to finish
-        wait(NULL);
-        //Stop the timer
-        clock_gettime(CLOCK_MONOTONIC, &stopTimer);
-        //Get the total time by subtracting the starting time from the stoping time
-        totalChildTime = ((double)stopTimer.tv_sec + 1.0e-9 * stopTimer.tv_nsec) - ((double)startTimer.tv_sec + 1.0e-9*startTimer.tv_nsec);
-        printf("Total time for the child process %d: %.5f seconds\n", childpid, totalChildTime);    
-    }
+            }
+            //Fork returns 0 to the child if successful
+            if(childPids[i] == 0) /* Child pid */
+            { 
+                //Use execl to run the oss executable
+                childExec = execl("./prime", "prime", NULL);
 
-    sharedMemDetach = shmdt(sharedMemAttachInt);
+                if(childExec == -1)
+                {
+                    perror("oss: Error: Child failed to exec ls\n");
+                    exit(EXIT_FAILURE);
+                }       
+            }      
+        }
+    
+        /* Parent pid */
+        //printf("The parent pid is %ld\n", (long)getpid());
+     
+        //Wait for the child to finish
+        child = waitpid(-1, &status, WNOHANG);
+         
+        if(child > 0)
+        {
+            //Stop the timer
+            clock_gettime(CLOCK_MONOTONIC, &stopTimer);
+            //Get the total time by subtracting the starting time from the stoping time
+            totalChildTime = ((double)stopTimer.tv_sec + 1.0e-9 * stopTimer.tv_nsec) - ((double)startTimer.tv_sec + 1.0e-9*startTimer.tv_nsec);
+            double newTime;
+            newTime += totalChildTime;
+            printf("Total time for the child process %d: %.7f seconds\n", child, newTime);    
+            completedChildren++;
+            childrenInSystem--;
+        }
+    }
+    
+    sharedMemDetach = shmdt(sharedMemAttach);
     //Detach and remove the segment of shared memory 
     //sharedMemDetach = deallocateMem(sharedMemSegment, sharedMemAttachInt);
 

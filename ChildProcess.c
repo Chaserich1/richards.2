@@ -45,8 +45,12 @@ void childWork()
     }
 
     int readValue = childMemAttachInt[0];
+    int readnValue = childMemAttachInt[1];
+    int readnnValue = childMemAttachInt[2];
+    int readnnnValue = childMemAttachInt[3];
     
-    printf("%d\n", readValue);
+
+    //printf("%d %d %d %d %d\n", readValue, readnValue, readnnValue, readnnnValue, readnnnnValue);
     
     //Detach and remove the shared memeory segment
     sharedMemDetach = deallocateMem(sharedMemSegment, childMemAttachInt);
