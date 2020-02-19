@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
                 break;
             case 'n':
                 maxChildren = atoi(optarg);
-                printf("%d\n", maxChildren);
+                //printf("%d\n", maxChildren);
                 if(maxChildren > 20)
                 {
                     printf("The max number of children allowed is 20, setting to -n 20");
@@ -32,19 +32,19 @@ int main(int argc, char* argv[])
                 break;
             case 's':
                 childLimit = atoi(optarg);
-                printf("%d\n", childLimit);
+                //printf("%d\n", childLimit);
                 break;
             case 'b':
                 startOfSeq = atoi(optarg);
-                printf("%d\n", startOfSeq);
+                //printf("%d\n", startOfSeq);
                 break;
             case 'i':
                 incrementVal = atoi(optarg);
-                printf("%d\n", incrementVal);
+                //printf("%d\n", incrementVal);
                 break;
             case 'o':
                 outFile = optarg;
-                printf("%s\n", outFile);
+                //printf("%s\n", outFile);
                 break;
             case '?':
                 fprintf(stderr, "%s: Error: Invalid option, use -h to see the available options.\n", argv[0]);
@@ -70,16 +70,23 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
     int childExec;
     char *sharedMemAttach;
     key_t key;
-    struct timespec startTimer = {0,0}, stopTimer = {0,0};
-    double totalChildTime = 0;
     int childCounter = 0;
+    
+    struct sharedMemory
+    {
+        int nanoSeconds;
+        int seconds;
+
+    };
+
+    struct sharedMemory* smPtr;
 
     //Key returns a key based on the path and id
     key = ftok(".",'m');
     //printf("%d", key);
 
     //Allocate the shared memory using shmget
-    sharedMemSegment = shmget(key, sizeof(int), IPC_CREAT | 0644);
+    sharedMemSegment = shmget(key, sizeof(struct sharedMemory), IPC_CREAT | 0644);
 
     //If shmget is unsuccessful it retruns -1 so check for this
     if(sharedMemSegment == -1) 
@@ -89,15 +96,15 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
     }
 
     //Attach the memory to our space
-    sharedMemAttach = shmat(sharedMemSegment, NULL, 0);
-    int *sharedMemAttachInt = (int *)sharedMemAttach;    
+    smPtr = (struct sharedMemory *)shmat(sharedMemSegment, NULL, 0);
+    //int *sharedMemAttachInt = (int *)sharedMemAttach;    
 
     //If shmat is unsuccessful it returns -1 so check for this
-    if(sharedMemAttachInt == (void *)-1)
+    if(smPtr == (void *)-1)
     {
-        perror("exe: Error: shmat failed to attach shared memory");
-        if(shmctl(sharedMemSegment, IPC_RMID, NULL) == -1)
-            perror("exe: Error: shmctl failed to remove the shared memory segment");
+        perror("oss: Error: shmat failed to attach shared memory");
+        //if(shmctl(sharedMemSegment, IPC_RMID, NULL) == -1)
+          //  perror("exe: Error: shmctl failed to remove the shared memory segment");
         exit(EXIT_FAILURE);
     }
 
@@ -106,13 +113,8 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
         strncpy(sharedMemAttach, argv[1], sizeof(int));
     printf("The segment has the following: %s\n", sharedMemAttach); */
      
-
-    sharedMemAttachInt[0] = maxChildren;
-    sharedMemAttachInt[1] = childLimit;
-    sharedMemAttachInt[2] = startOfSeq;
-    sharedMemAttachInt[3] = incrementVal;
-    //sharedMemAttachInt[4] = 0;
-    //sharedMemAttachInt[5] = 0;
+    smPtr->nanoSeconds = 0;
+    smPtr->seconds = 0; 
     
     pid_t childPids[maxChildren], child;
     int i = 0;
@@ -124,12 +126,9 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
     while(maxChildren != 0 || completedChildren != max)
     {
  
-        //Start the timer then fork
-        clock_gettime(CLOCK_MONOTONIC, &startTimer);
-        
+             
         if(maxChildren != 0 && childrenInSystem < childLimit)
         {
-
             childCounter++;
             i++;
             childrenInSystem++;
@@ -164,21 +163,14 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
          
         if(child > 0)
         {
-            //Stop the timer
-            clock_gettime(CLOCK_MONOTONIC, &stopTimer);
-            //Get the total time by subtracting the starting time from the stoping time
-            totalChildTime = ((double)stopTimer.tv_sec + 1.0e-9 * stopTimer.tv_nsec) - ((double)startTimer.tv_sec + 1.0e-9*startTimer.tv_nsec);
-            double newTime;
-            newTime += totalChildTime;
-            printf("Total time for the child process %d: %.7f seconds\n", child, newTime);    
+            printf("%d\n", childPids[i]);    
             completedChildren++;
             childrenInSystem--;
         }
     }
     
-    sharedMemDetach = shmdt(sharedMemAttach);
     //Detach and remove the segment of shared memory 
-    //sharedMemDetach = deallocateMem(sharedMemSegment, sharedMemAttachInt);
+    sharedMemDetach = deallocateMem(sharedMemSegment, (void *) smPtr);
 
     //If shmdt is unsuccessful it returns -1 so check for this
     if(sharedMemDetach == -1)
@@ -193,8 +185,7 @@ int deallocateMem(int shmid, void *shmaddr)
     //If detaching fails it will return -1 so return -1 for deallocation call
     if(shmdt(shmaddr) == -1)
         return -1;
-    if(shmctl(shmid, IPC_RMID, NULL) == -1) 
-        return -1;
+    shmctl(shmid, IPC_RMID, NULL);
     return 0;
 }
 

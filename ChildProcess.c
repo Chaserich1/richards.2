@@ -16,13 +16,14 @@ int main()
 
 void childWork()
 {
+ 
     int sharedMemSegment, sharedMemDetach;
     char *sharedMemAttach; 
     //ftok gives us the key based on curent path and 'm' id
     key_t key = ftok(".",'m');
 
     //Allocate the shared memory with shmget
-    sharedMemSegment = shmget(key, sizeof(int), IPC_CREAT | 0644);
+    sharedMemSegment = shmget(key, sizeof(struct sharedMemory), IPC_CREAT | 0644);
 
     //If shmget returns -1 then it was unsuccessful
     if(sharedMemSegment == -1)
@@ -32,11 +33,11 @@ void childWork()
     }
     
     //Attach the memory to our space
-    sharedMemAttach = shmat(sharedMemSegment, NULL, 0);
-    int *childMemAttachInt = (int *)sharedMemAttach;
+    smPtr = (struct sharedMemory *) shmat(sharedMemSegment, NULL, 0);
+    //int *childMemAttachInt = (int *)sharedMemAttach;
 
     //If shmat returns -1 then it was unsuccessful
-    if(childMemAttachInt == (void *)-1)
+    if(smPtr == (void *)-1)
     {
         perror("exe: Error: shmat failed to attach shared memory");
         if(shmctl(sharedMemSegment, IPC_RMID, NULL) == -1)
@@ -44,16 +45,13 @@ void childWork()
         exit(EXIT_FAILURE);
     }
 
-    int readValue = childMemAttachInt[0];
-    int readnValue = childMemAttachInt[1];
-    int readnnValue = childMemAttachInt[2];
-    int readnnnValue = childMemAttachInt[3];
-    
 
-    //printf("%d %d %d %d %d\n", readValue, readnValue, readnnValue, readnnnValue, readnnnnValue);
+    printf("Nanoseconds: %u\n", smPtr-> nanoSeconds);
+
+    
     
     //Detach and remove the shared memeory segment
-    sharedMemDetach = deallocateMem(sharedMemSegment, childMemAttachInt);
+    sharedMemDetach = deallocateMem(sharedMemSegment, smPtr);
 
     //If shmdt returns -1 then it was unsuccessful
     if(sharedMemDetach == -1)
@@ -69,7 +67,6 @@ int deallocateMem(int shmid, void *shmaddr)
     //If detaching fails it will return -1 so return -1 for deallocation call
     if(shmdt(shmaddr) == -1)
         return -1;
-    if(shmctl(shmid, IPC_RMID, NULL) == -1) 
-        return -1;
+    shmctl(shmid, IPC_RMID, NULL);
     return 0;
 }
