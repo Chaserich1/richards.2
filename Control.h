@@ -16,13 +16,28 @@
 #include <time.h>
 #include <signal.h>
 
+struct sharedMemory
+{
+    int nanoSeconds;
+    int seconds;
+    int *childProcArr;
+};
+
+struct sharedMemory* smPtr;
+
 //Prototype for deallocating the shared memory
 int deallocateMem(int shmid, void *shmaddr);
 
 //Prototype for working with the shared memory from master
 void sharedMemoryWork();
 
+void launchChildren(int maxChildren, int childLimit, char *outFile);
+
 void sigHandler(int sig);
+
+void writeChildInfo(int childID, char *outFile);
+
+void timeIncrementation();
 
 void displayHelpMessage();
 

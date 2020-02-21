@@ -5,16 +5,7 @@
 
 #include "ChildProcess.h"
 
-int main() 
-{
-    //printf("child");
-    childWork();
- 
-    return 0;
-
-}
-
-void childWork()
+int main(int argc, char* argv[]) 
 {
  
     int sharedMemSegment, sharedMemDetach;
@@ -45,11 +36,12 @@ void childWork()
         exit(EXIT_FAILURE);
     }
 
-
-    printf("Nanoseconds: %u\n", smPtr-> nanoSeconds);
-
-    
-    
+     
+    //printf("Start of Sequence: %d\n", smPtr-> b);
+    //printf("Increment Value: %d\n", smPtr-> i);
+    printf("ChildID: %d\n", atoi(argv[1]));
+    printf("Prime Number to Check: %d\n", atoi(argv[2]));   
+  
     //Detach and remove the shared memeory segment
     sharedMemDetach = deallocateMem(sharedMemSegment, smPtr);
 
@@ -59,6 +51,8 @@ void childWork()
         perror("oss: Error: shmdt failed to detach shared memory\n");
         exit(EXIT_FAILURE);
     }
+
+    return 0;
 
 }
 

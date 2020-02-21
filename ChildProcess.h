@@ -12,13 +12,13 @@
 #include <sys/shm.h>
 #include <sys/ipc.h>
 
-void childWork();
 int deallocateMem(int shmid, void *shmaddr);
 
 struct sharedMemory
 {
     int nanoSeconds;
     int seconds;
+    int *childProcArr;
 };
 
 struct sharedMemory *smPtr;

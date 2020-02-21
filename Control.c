@@ -51,7 +51,13 @@ int main(int argc, char* argv[])
                 perror("");
                 exit(1); 
         }
-    }   
+    }
+   
+    if(outFile == NULL)
+    {
+        outFile = malloc(sizeof(int));
+        strcpy(outFile, "output.log");       
+    }
  
     signal(SIGALRM, sigHandler);
     alarm(2);
@@ -67,19 +73,8 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
 {
 
     int sharedMemSegment, sharedMemDetach;
-    int childExec;
     char *sharedMemAttach;
     key_t key;
-    int childCounter = 0;
-    
-    struct sharedMemory
-    {
-        int nanoSeconds;
-        int seconds;
-
-    };
-
-    struct sharedMemory* smPtr;
 
     //Key returns a key based on the path and id
     key = ftok(".",'m');
@@ -113,21 +108,51 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
         strncpy(sharedMemAttach, argv[1], sizeof(int));
     printf("The segment has the following: %s\n", sharedMemAttach); */
      
-    smPtr->nanoSeconds = 0;
-    smPtr->seconds = 0; 
+    smPtr-> nanoSeconds = 0;
+    smPtr-> seconds = 0;     
     
-    pid_t childPids[maxChildren], child;
+    smPtr-> childProcArr = malloc(sizeof(int) * maxChildren);
+    smPtr-> childProcArr[maxChildren] = 0;
+    
+
+    launchChildren(maxChildren, childLimit, outFile);
+
+    //Detach and remove the segment of shared memory
+    sharedMemDetach = deallocateMem(sharedMemSegment, (void *) smPtr);
+    //If shmdt is unsuccessful it returns -1 so check for this
+    if(sharedMemDetach == -1)
+    {
+        perror("exe: Error: shmdt failed to detach shared memory");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void launchChildren(int maxChildren, int childLimit, char *outFile)
+{
+    pid_t childPids[maxChildren];
+    pid_t finishedWaiting;
     int i = 0;
     int status;
     int childrenInSystem;
     int completedChildren;
+    int childCounter = 0;
+    int childExec;
     int max = maxChildren;
+    int initChildID = 0;
+    int initPrimeNum = 7; 
+    char primeNum[100];
+
+    snprintf(primeNum, sizeof(primeNum), "%d", initPrimeNum);
 
     while(maxChildren != 0 || completedChildren != max)
-    {
- 
-             
-        if(maxChildren != 0 && childrenInSystem < childLimit)
+    {   
+        timeIncrementation();
+        initChildID++;     
+        char childID[50];
+        snprintf(childID, sizeof(childID), "%d", initChildID);
+   
+  
+        if(childrenInSystem < childLimit && maxChildren != 0)
         {
             childCounter++;
             i++;
@@ -141,42 +166,32 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
                 perror("oss: Error: Child process fork failed");
                 exit(EXIT_FAILURE);
             }
+            
             //Fork returns 0 to the child if successful
             if(childPids[i] == 0) /* Child pid */
             { 
                 //Use execl to run the oss executable
-                childExec = execl("./prime", "prime", NULL);
-
+                childExec = execlp("./prime", "prime", childID, primeNum, NULL);
+                
                 if(childExec == -1)
                 {
                     perror("oss: Error: Child failed to exec ls\n");
                     exit(EXIT_FAILURE);
-                }       
+                }
+                exit(0);
+                       
             }      
         }
-    
-        /* Parent pid */
-        //printf("The parent pid is %ld\n", (long)getpid());
      
         //Wait for the child to finish
-        child = waitpid(-1, &status, WNOHANG);
-         
-        if(child > 0)
-        {
-            printf("%d\n", childPids[i]);    
+        finishedWaiting = wait(&status);      
+ 
+        if(finishedWaiting > 0)
+        {    
+            writeChildInfo(childID, outFile);
             completedChildren++;
             childrenInSystem--;
         }
-    }
-    
-    //Detach and remove the segment of shared memory 
-    sharedMemDetach = deallocateMem(sharedMemSegment, (void *) smPtr);
-
-    //If shmdt is unsuccessful it returns -1 so check for this
-    if(sharedMemDetach == -1)
-    {
-        perror("exe: Error: shmdt failed to detach shared memory");
-        exit(EXIT_FAILURE);
     }
 }
 
@@ -187,6 +202,22 @@ int deallocateMem(int shmid, void *shmaddr)
         return -1;
     shmctl(shmid, IPC_RMID, NULL);
     return 0;
+}
+
+void writeChildInfo(int childID, char *outFile)
+{
+    FILE *file = fopen(outFile, "a");
+    fprintf(file, "ChildID %d completed at %d seconds and %u nanoseconds.\n", childID, smPtr-> seconds, smPtr-> nanoSeconds);
+    fclose(file);
+}
+
+void timeIncrementation()
+{
+    smPtr-> nanoSeconds = smPtr-> nanoSeconds + 10000;
+    if(smPtr-> nanoSeconds % 1000000000 == 0)
+    {
+        smPtr-> seconds = smPtr-> seconds + 1;
+    }
 }
 
 void sigHandler(int sig)
