@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
     
     int c;
     int maxChildren = 4, childLimit = 2, startOfSeq = 0, incrementVal = NULL;
-    char *outFile;
+    char *outFile = "output.dat";
 
     /* Why didn't I use optarg on homework 1.... */
     while((c = getopt(argc, argv, "hn:s:b:i:o:")) != -1) 
@@ -51,12 +51,6 @@ int main(int argc, char* argv[])
                 perror("");
                 exit(1); 
         }
-    }
-   
-    if(outFile == NULL)
-    {
-        outFile = malloc(sizeof(int));
-        strcpy(outFile, "output.log");       
     }
  
     signal(SIGALRM, sigHandler);
@@ -112,8 +106,7 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
     smPtr-> seconds = 0;     
     
     smPtr-> childProcArr = malloc(sizeof(int) * maxChildren);
-    smPtr-> childProcArr[maxChildren] = 0;
-    
+    smPtr-> childProcArr[maxChildren] = 0;   
 
     launchChildren(maxChildren, childLimit, outFile);
 
@@ -129,46 +122,45 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
 
 void launchChildren(int maxChildren, int childLimit, char *outFile)
 {
-    pid_t childPids[maxChildren];
-    pid_t finishedWaiting;
-    int i = 0;
-    int status;
-    int childrenInSystem;
-    int completedChildren;
+    pid_t pid;
+    pid_t waitingID;
+    int incrementClock; 
+    int childrenInSystem = 0;
+    int completedChildren = 0;
     int childCounter = 0;
     int childExec;
-    int max = maxChildren;
     int initChildID = 0;
     int initPrimeNum = 7; 
     char primeNum[100];
-
+    char childID[20];
     snprintf(primeNum, sizeof(primeNum), "%d", initPrimeNum);
 
-    while(maxChildren != 0 || completedChildren != max)
+    OUTFILE = fopen(outFile, "a");
+
+    //start timer
+
+    while(maxChildren > completedChildren)
     {   
         timeIncrementation();
-        initChildID++;     
-        char childID[50];
-        snprintf(childID, sizeof(childID), "%d", initChildID);
+        //initChildID++;     
+        //char childID[50];
+        //snprintf(childID, sizeof(childID), "%d", initChildID);
    
   
-        if(childrenInSystem < childLimit && maxChildren != 0)
+        if(childCounter < maxChildren && childrenInSystem < childLimit)
         {
-            childCounter++;
-            i++;
             childrenInSystem++;
-            maxChildren--;
-
-            childPids[i] = fork();
+            initChildID++;
+            snprintf(childID, 20, "%d", initChildID);
+            pid = fork();
             //Fork returns -1 if it fails
-            if(childPids[i] == -1)
+            if(pid == -1)
             {
                 perror("oss: Error: Child process fork failed");
                 exit(EXIT_FAILURE);
             }
-            
             //Fork returns 0 to the child if successful
-            if(childPids[i] == 0) /* Child pid */
+            else if(pid == 0) /* Child pid */
             { 
                 //Use execl to run the oss executable
                 childExec = execlp("./prime", "prime", childID, primeNum, NULL);
@@ -178,17 +170,17 @@ void launchChildren(int maxChildren, int childLimit, char *outFile)
                     perror("oss: Error: Child failed to exec ls\n");
                     exit(EXIT_FAILURE);
                 }
-                exit(0);
-                       
-            }      
+                exit(EXIT_SUCCESS);                       
+            }
+            childCounter++;       
         }
      
         //Wait for the child to finish
-        finishedWaiting = wait(&status);      
+        waitingID = waitpid(-1, NULL, WNOHANG);      
  
-        if(finishedWaiting > 0)
-        {    
-            writeChildInfo(childID, outFile);
+        if(waitingID > 0)
+        {   
+            fprintf(OUTFILE, "Child ID: %d | Time: %d seconds, %u nanoseconds\n", childID, smPtr-> seconds, smPtr-> nanoSeconds); 
             completedChildren++;
             childrenInSystem--;
         }
@@ -204,13 +196,6 @@ int deallocateMem(int shmid, void *shmaddr)
     return 0;
 }
 
-void writeChildInfo(int childID, char *outFile)
-{
-    FILE *file = fopen(outFile, "a");
-    fprintf(file, "ChildID %d completed at %d seconds and %u nanoseconds.\n", childID, smPtr-> seconds, smPtr-> nanoSeconds);
-    fclose(file);
-}
-
 void timeIncrementation()
 {
     smPtr-> nanoSeconds = smPtr-> nanoSeconds + 10000;
@@ -224,14 +209,30 @@ void sigHandler(int sig)
 {
     if(sig == SIGALRM)
     {
+        key_t key = ftok(".",'m');
+        int sharedMemSegment;
+        sharedMemSegment = shmget(key, sizeof(struct sharedMemory), IPC_CREAT | 0644);
+        smPtr = (struct sharedMemory *)shmat(sharedMemSegment, NULL, 0);
         printf("Two Seconds is up.\n");
-        exit(0);
+        fprintf(OUTFILE, "Killed at %d seconds and %u nanoseconds\n", smPtr-> seconds, smPtr-> nanoSeconds);
+        fclose(OUTFILE);
+        shmctl(sharedMemSegment, IPC_RMID, NULL);
+        kill(0, SIGKILL);
+        exit(EXIT_SUCCESS);
     }
     
     if(sig == SIGINT)
     {
+        key_t key = ftok(".",'m');
+        int sharedMemSegment;
+        sharedMemSegment = shmget(key, sizeof(struct sharedMemory), IPC_CREAT | 0644);
+        smPtr = (struct sharedMemory *)shmat(sharedMemSegment, NULL, 0);
         printf("Ctrl-c was entered\n");
-        exit(0);
+        fprintf(OUTFILE, "Killed at %d seconds and %u nanoseconds\n", smPtr-> seconds, smPtr-> nanoSeconds);
+        fclose(OUTFILE);
+        shmctl(sharedMemSegment, IPC_RMID, NULL);
+        kill(0, SIGKILL);
+        exit(EXIT_SUCCESS);
     }
 }
 

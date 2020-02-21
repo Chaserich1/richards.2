@@ -9,9 +9,14 @@ How to Compile and Run (without typing "./" before the executable):
 
 $ make
 $ export PATH="$PATH:."
-$ 
 
-To remove all .o and the bt executable:
+To Run (Default option values or using options):
+
+$ ./oss
+or
+$ ./oss -n 10 -s 2 -b 101 -i 4 -o output.dat
+
+To remove all .o, .dat and the executables:
 
 $ make clean
 

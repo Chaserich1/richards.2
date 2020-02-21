@@ -7,6 +7,8 @@
 
 int main(int argc, char* argv[]) 
 {
+    //for(;;)
+    //    ;
  
     int sharedMemSegment, sharedMemDetach;
     char *sharedMemAttach; 
@@ -39,8 +41,8 @@ int main(int argc, char* argv[])
      
     //printf("Start of Sequence: %d\n", smPtr-> b);
     //printf("Increment Value: %d\n", smPtr-> i);
-    printf("ChildID: %d\n", atoi(argv[1]));
-    printf("Prime Number to Check: %d\n", atoi(argv[2]));   
+    //printf("ChildID: %d\n", atoi(argv[1]));
+    //printf("Prime Number to Check: %d\n", atoi(argv[2]));   
   
     //Detach and remove the shared memeory segment
     sharedMemDetach = deallocateMem(sharedMemSegment, smPtr);
