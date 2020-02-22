@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
     //flgsPassedIn(argc, argv);
     
     int c;
-    int maxChildren = 4, childLimit = 2, startOfSeq = 0, incrementVal = NULL;
+    int maxChildren = 4, childLimit = 2, startOfSeq = 101, incrementVal = 4;
     char *outFile = "output.dat";
 
     /* Why didn't I use optarg on homework 1.... */
@@ -105,10 +105,11 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
     smPtr-> nanoSeconds = 0;
     smPtr-> seconds = 0;     
     
-    smPtr-> childProcArr = malloc(sizeof(int) * maxChildren);
-    smPtr-> childProcArr[maxChildren] = 0;   
+    //smPtr-> childProcArr = malloc(sizeof(int) * maxChildren);
+    smPtr-> childProcArr[0] = 0;
+    smPtr-> childProcArr[1] = 1;   
 
-    launchChildren(maxChildren, childLimit, outFile);
+    launchChildren(maxChildren, childLimit, startOfSeq, incrementVal, outFile);
 
     //Detach and remove the segment of shared memory
     sharedMemDetach = deallocateMem(sharedMemSegment, (void *) smPtr);
@@ -120,7 +121,7 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
     }
 }
 
-void launchChildren(int maxChildren, int childLimit, char *outFile)
+void launchChildren(int maxChildren, int childLimit, int startOfSeq, int incrementVal, char *outFile)
 {
     pid_t pid;
     pid_t waitingID;
@@ -130,29 +131,29 @@ void launchChildren(int maxChildren, int childLimit, char *outFile)
     int childCounter = 0;
     int childExec;
     int initChildID = 0;
-    int initPrimeNum = 7; 
-    char primeNum[100];
-    char childID[20];
-    snprintf(primeNum, sizeof(primeNum), "%d", initPrimeNum);
+    int initPrimeNum = startOfSeq; 
+    char primeNum[20];
+    char childID[20];  
 
     OUTFILE = fopen(outFile, "a");
 
-    //start timer
-
     while(maxChildren > completedChildren)
     {   
-        timeIncrementation();
-        //initChildID++;     
-        //char childID[50];
-        //snprintf(childID, sizeof(childID), "%d", initChildID);
-   
-  
+        //Increment the time of by 10000
+        timeIncrementation(); 
+        /* If the the number of children is less than the max number (specified by -n) it should run and the children 
+           running is less than the limit of children that should run at once (specified by -s) */
         if(childCounter < maxChildren && childrenInSystem < childLimit)
         {
+ 
             childrenInSystem++;
-            initChildID++;
+            //initChildID++;
+            //initPrimeNum += incrementVal;
+            snprintf(primeNum, 20, "%d", initPrimeNum);
             snprintf(childID, 20, "%d", initChildID);
             pid = fork();
+            fprintf(OUTFILE, "Child ID: %d lauched.    | Time: %d seconds, %u nanoseconds\n", pid, smPtr-> seconds, smPtr-> nanoSeconds);
+            
             //Fork returns -1 if it fails
             if(pid == -1)
             {
@@ -177,14 +178,17 @@ void launchChildren(int maxChildren, int childLimit, char *outFile)
      
         //Wait for the child to finish
         waitingID = waitpid(-1, NULL, WNOHANG);      
- 
+        
         if(waitingID > 0)
-        {   
-            fprintf(OUTFILE, "Child ID: %d | Time: %d seconds, %u nanoseconds\n", childID, smPtr-> seconds, smPtr-> nanoSeconds); 
+        { 
+            fprintf(OUTFILE, "Child ID: %d terminated. | Time: %d seconds, %u nanoseconds\n", waitingID, smPtr-> seconds, smPtr-> nanoSeconds); 
             completedChildren++;
             childrenInSystem--;
+            initChildID++;
+            initPrimeNum += incrementVal;
         }
     }
+    //printf("%d\n", smPtr-> childProcArr[0]);                                                                                printf("%d\n", smPtr-> childProcArr[1]);                                                                                printf("%d\n", smPtr-> childProcArr[2]);                                                                                printf("%d\n", smPtr-> childProcArr[3]);
 }
 
 int deallocateMem(int shmid, void *shmaddr) 
@@ -196,15 +200,20 @@ int deallocateMem(int shmid, void *shmaddr)
     return 0;
 }
 
+/* Increment the time by 10000 at the start of each loop, if we reach a second then add a second */
 void timeIncrementation()
 {
     smPtr-> nanoSeconds = smPtr-> nanoSeconds + 10000;
     if(smPtr-> nanoSeconds % 1000000000 == 0)
     {
         smPtr-> seconds = smPtr-> seconds + 1;
+        smPtr-> nanoSeconds = 0;
     }
 }
 
+/* Signal handler, that looks to see if the signal is for 2 seconds being up or ctrl-c being entered.
+   In both cases, I connect to shared memory so that I can write the time that it is killed to the file
+   and so that I can disconnect and remove the shared memory. */
 void sigHandler(int sig)
 {
     if(sig == SIGALRM)
@@ -236,16 +245,23 @@ void sigHandler(int sig)
     }
 }
 
+/* For the -h option that can be entered */
 void displayHelpMessage() 
 {
     printf("\n---------------------------------------------------------\n");
     printf("See below for the options:\n\n");
-    printf("-h    : Instructions for running the project.\n");
+    printf("-h    : Instructions for running the project and terminate.\n");
     printf("-n x  : Maximum number of child processes oss will ever create (Default 4).\n"); 
-    printf("-s x  : Number of children allowed to exist in the system at same time (Default 2).\n");
-    printf("-b B  : Start of the sequence of numbers to be tested for primality.\n");
-    printf("-i I  : Increment between numbers that we test.\n");
-    printf("-o filename  : Output file.\n");
+    printf("-s x  : Number of children allowed to exist in the system at same time (Default: 2).\n");
+    printf("-b B  : Start of the sequence of numbers to be tested for primality (Default: 101).\n");
+    printf("-i I  : Increment between numbers that we test (Default: 4).\n");
+    printf("-o filename  : Output file (Default: output.dat).\n");
+    printf("\n---------------------------------------------------------\n");
+    printf("Examples of how to run program(default and with options):\n\n");
+    printf("$ make\n");
+    printf("$ ./oss\n");
+    printf("$ ./oss -n 10 -s 2 -b 101 -i 4 -o output.dat\n");
+    printf("$ make clean\n");
     printf("\n---------------------------------------------------------\n"); 
     exit(0);
 }

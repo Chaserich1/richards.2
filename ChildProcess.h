@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
+#include <math.h>
 
 int deallocateMem(int shmid, void *shmaddr);
 
@@ -18,7 +19,7 @@ struct sharedMemory
 {
     int nanoSeconds;
     int seconds;
-    int *childProcArr;
+    int childProcArr[20];
 };
 
 struct sharedMemory *smPtr;

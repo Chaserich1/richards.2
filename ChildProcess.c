@@ -7,9 +7,7 @@
 
 int main(int argc, char* argv[]) 
 {
-    //for(;;)
-    //    ;
- 
+
     int sharedMemSegment, sharedMemDetach;
     char *sharedMemAttach; 
     //ftok gives us the key based on curent path and 'm' id
@@ -26,7 +24,7 @@ int main(int argc, char* argv[])
     }
     
     //Attach the memory to our space
-    smPtr = (struct sharedMemory *) shmat(sharedMemSegment, NULL, 0);
+    smPtr = (struct sharedMemory *)shmat(sharedMemSegment, NULL, 0);
     //int *childMemAttachInt = (int *)sharedMemAttach;
 
     //If shmat returns -1 then it was unsuccessful
@@ -39,10 +37,31 @@ int main(int argc, char* argv[])
     }
 
      
-    //printf("Start of Sequence: %d\n", smPtr-> b);
+    //printf("Start of Sequence: %d\n", smPtr-> nanoSeconds);
     //printf("Increment Value: %d\n", smPtr-> i);
     //printf("ChildID: %d\n", atoi(argv[1]));
-    //printf("Prime Number to Check: %d\n", atoi(argv[2]));   
+    //printf("Prime Number to Check: %d\n", atoi(argv[2]));
+    
+    int i; 
+    //childID = atoi(argv[1]);
+    //numToCheck = atoi(argv[2]);
+    //printf("%d", childID);
+    //smPtr-> childProcArr = malloc(sizeof(int) * 20);
+    //Check from 2 to the number we are checking divided by 2 
+
+    printf("%d\n", atoi(argv[2]));
+
+    smPtr-> childProcArr[2] = atoi(argv[2]);
+
+    for(i = 2; i <= sqrt(atoi(argv[2])); i++)
+    {
+        //If n is divided by any to the number from 2 to numToCheck/2 it isn't prime
+        if((atoi(argv[2])) % i == 0)
+            smPtr-> childProcArr[atoi(argv[1])] = ((atoi(argv[2])) * -1);
+        else
+            smPtr-> childProcArr[atoi(argv[1])] = atoi(argv[2]);
+            
+    } 
   
     //Detach and remove the shared memeory segment
     sharedMemDetach = deallocateMem(sharedMemSegment, smPtr);

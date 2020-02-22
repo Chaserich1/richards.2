@@ -19,9 +19,8 @@
 struct sharedMemory
 {
     int nanoSeconds;
-    int seconds;
-    char duration[64];
-    int *childProcArr;
+    int seconds;    
+    int childProcArr[20];
 };
 
 struct sharedMemory* smPtr;
@@ -34,7 +33,7 @@ int deallocateMem(int shmid, void *shmaddr);
 //Prototype for working with the shared memory from master
 void sharedMemoryWork();
 
-void launchChildren(int maxChildren, int childLimit, char *outFile);
+void launchChildren(int maxChildren, int childLimit, int startOfSeq, int incrementVal, char *outFile);
 
 void sigHandler(int sig);
 
