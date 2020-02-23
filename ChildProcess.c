@@ -36,6 +36,11 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
     
+    /* Used for testing signals 
+    for(;;)
+        ;
+    */
+
     //Save the starting time to a variable
     int childStartTime = smPtr-> nanoSeconds;
    
@@ -76,8 +81,8 @@ int main(int argc, char* argv[])
     if(primeFlg == 1)
         return(1);
     else if(primeFlg == 0)
-        return(0); 
-  
+        return(0);  
+ 
     //Detach and remove the shared memeory segment
     sharedMemDetach = deallocateMem(sharedMemSegment, smPtr);
 

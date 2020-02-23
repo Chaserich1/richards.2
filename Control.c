@@ -250,6 +250,9 @@ void launchChildren(int maxChildren, int childLimit, int startOfSeq, int increme
         }
     }
 
+    //Output the completion time to the output file when a children finish
+    fprintf(OUTFILE, "The program completed at: %d seconds %u nanoseconds\n", smPtr-> seconds, smPtr-> nanoSeconds);
+
     //Print the prime array numbers to the output file 
     fprintf(OUTFILE, "The prime numbers are:");
     for(i = 0; i < initPrimeNum; i++)
