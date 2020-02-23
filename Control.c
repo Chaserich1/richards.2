@@ -10,10 +10,11 @@ int main(int argc, char* argv[])
     //flgsPassedIn(argc, argv);
     
     int c;
+    //Setting the default option values
     int maxChildren = 4, childLimit = 2, startOfSeq = 101, incrementVal = 4;
     char *outFile = "output.dat";
 
-    /* Why didn't I use optarg on homework 1.... */
+    /* GetOpt switch for the options being passed in */
     while((c = getopt(argc, argv, "hn:s:b:i:o:")) != -1) 
     {
         switch(c) 
@@ -52,12 +53,18 @@ int main(int argc, char* argv[])
                 exit(1); 
         }
     }
- 
+    
+    /* Signal for terminating, freeing up shared mem, killing all children 
+       if the program goes for more than two seconds of real clock */
     signal(SIGALRM, sigHandler);
     alarm(2);
 
+    /* Signal for terminating, freeing up shared mem, killing all 
+       children if the user enters ctrl-c */
     signal(SIGINT, sigHandler);   
- 
+    
+    /* Function that creates and connects to the shared memory segment 
+       then launches the children launching function */
     sharedMemoryWork(maxChildren, childLimit, startOfSeq, incrementVal, outFile); 
    
     return 0;   
@@ -80,7 +87,7 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
     //If shmget is unsuccessful it retruns -1 so check for this
     if(sharedMemSegment == -1) 
     {
-        perror("exe: Error: shmget failed to allocate shared memory");
+        perror("oss: Error: shmget failed to allocate shared memory");
         exit(EXIT_FAILURE);
     }
 
@@ -106,17 +113,25 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
     smPtr-> seconds = 0;     
     
     //smPtr-> childProcArr = malloc(sizeof(int) * maxChildren);
-    smPtr-> childProcArr[0] = 0;
-    smPtr-> childProcArr[1] = 1;   
-
+    int i;
+    for(i = 0; i <= maxChildren; i++)
+    {
+        smPtr-> childProcArr[i] = 0;
+        //printf("%d\n", smPtr-> childProcArr[i]);
+    }
+       
+    //Function that lauches the children and writes to the file
     launchChildren(maxChildren, childLimit, startOfSeq, incrementVal, outFile);
+    
+    //Close the outfile
+    fclose(OUTFILE);
 
     //Detach and remove the segment of shared memory
     sharedMemDetach = deallocateMem(sharedMemSegment, (void *) smPtr);
     //If shmdt is unsuccessful it returns -1 so check for this
     if(sharedMemDetach == -1)
     {
-        perror("exe: Error: shmdt failed to detach shared memory");
+        perror("oss: Error: shmdt failed to detach shared memory");
         exit(EXIT_FAILURE);
     }
 }
@@ -130,28 +145,54 @@ void launchChildren(int maxChildren, int childLimit, int startOfSeq, int increme
     int completedChildren = 0;
     int childCounter = 0;
     int childExec;
+    int status;
+    int i;
+    int initNotPrimeNum = 0;
+    int initPrimeNum = 0;
+    int initOutOfTime = 0; 
     int initChildID = 0;
-    int initPrimeNum = startOfSeq; 
-    char primeNum[20];
-    char childID[20];  
+    int notPrimeNum[maxChildren];
+    int primeNum[maxChildren];
+    int outOfTime[maxChildren];  
+    char childID[maxChildren];
+    char stringArray[20];
 
+    /* Fill the numbers to check array according to the 
+       starting (-b) and increment (-i) values */
+    int numsToCheck[maxChildren];
+    numsToCheck[0] = startOfSeq;
+    for(i = 1; i < maxChildren; i++)
+    {
+        numsToCheck[i] = numsToCheck[i - 1] + incrementVal;
+    }
+    
+    //Open the outfile
     OUTFILE = fopen(outFile, "a");
 
+    //Loop through until the completed children equals the max children specified by -n x
     while(maxChildren > completedChildren)
     {   
         //Increment the time of by 10000
         timeIncrementation(); 
-        /* If the the number of children is less than the max number (specified by -n) it should run and the children 
-           running is less than the limit of children that should run at once (specified by -s) */
+        
+        /* If the the number of children is less than the max number 
+           (specified by -n) it should run and the children 
+           running is less than the limit of children that should 
+           run at once (specified by -s) */
         if(childCounter < maxChildren && childrenInSystem < childLimit)
-        {
- 
+        {    
+
+            /* Increment the number of children currently running - 
+               this will be decremented after waiting on the child to finish */
             childrenInSystem++;
-            //initChildID++;
-            //initPrimeNum += incrementVal;
-            snprintf(primeNum, 20, "%d", initPrimeNum);
-            snprintf(childID, 20, "%d", initChildID);
-            pid = fork();
+            initChildID++;
+            sprintf(childID, "%d", initChildID);
+           
+            //exec needs the array as a character string 
+            sprintf(stringArray, "%d", numsToCheck[childCounter]);
+            
+            //Fork then print the starting time
+            pid = fork(); 
             fprintf(OUTFILE, "Child ID: %d lauched.    | Time: %d seconds, %u nanoseconds\n", pid, smPtr-> seconds, smPtr-> nanoSeconds);
             
             //Fork returns -1 if it fails
@@ -163,9 +204,11 @@ void launchChildren(int maxChildren, int childLimit, int startOfSeq, int increme
             //Fork returns 0 to the child if successful
             else if(pid == 0) /* Child pid */
             { 
-                //Use execl to run the oss executable
-                childExec = execlp("./prime", "prime", childID, primeNum, NULL);
-                
+                //Use execvp to run the oss executable
+                char *args[] = {"./prime", stringArray, childID, NULL};
+                childExec = execvp(args[0], args);
+
+                //If the exec fails it returns -1 so perror and exit
                 if(childExec == -1)
                 {
                     perror("oss: Error: Child failed to exec ls\n");
@@ -173,22 +216,59 @@ void launchChildren(int maxChildren, int childLimit, int startOfSeq, int increme
                 }
                 exit(EXIT_SUCCESS);                       
             }
-            childCounter++;       
+            childCounter++; //Increment the number of children      
         }
      
         //Wait for the child to finish
-        waitingID = waitpid(-1, NULL, WNOHANG);      
+        waitingID = waitpid(-1, &status, WNOHANG);      
         
         if(waitingID > 0)
-        { 
+        {
+            int returnVal = WEXITSTATUS(status); 
             fprintf(OUTFILE, "Child ID: %d terminated. | Time: %d seconds, %u nanoseconds\n", waitingID, smPtr-> seconds, smPtr-> nanoSeconds); 
-            completedChildren++;
-            childrenInSystem--;
-            initChildID++;
-            initPrimeNum += incrementVal;
+            //If the child returns 1 then add the number to the not prime array and increment index
+            if(returnVal == 1)
+            {
+                notPrimeNum[initNotPrimeNum] = numsToCheck[completedChildren];
+                initNotPrimeNum++;
+            }
+            //If the child returns 0 then add the number to the prime array and increment index
+            else if(returnVal == 0) 
+            {
+                primeNum[initPrimeNum] = numsToCheck[completedChildren];
+                initPrimeNum++;
+            }
+            //If the child returns -1 then add the number to the out of time array and increment index
+            else if(returnVal == -1)
+            {
+                outOfTime[initOutOfTime] = numsToCheck[completedChildren];
+                initOutOfTime;
+            }
+     
+            completedChildren++; //A child has completed
+            childrenInSystem--; //There is one less child currently running, so we will be able to launch another now
         }
     }
-    //printf("%d\n", smPtr-> childProcArr[0]);                                                                                printf("%d\n", smPtr-> childProcArr[1]);                                                                                printf("%d\n", smPtr-> childProcArr[2]);                                                                                printf("%d\n", smPtr-> childProcArr[3]);
+
+    //Print the prime array numbers to the output file 
+    fprintf(OUTFILE, "The prime numbers are:");
+    for(i = 0; i < initPrimeNum; i++)
+    {
+        fprintf(OUTFILE, " %d", primeNum[i]);
+    }
+    //Print the not prime arrays numbers to the outfile
+    fprintf(OUTFILE, "\nThe numbers that are not prime are:");
+    for(i = 0; i < initNotPrimeNum; i++)
+    {
+        fprintf(OUTFILE, " %d", notPrimeNum[i]);
+    }
+    //Print the out of time array number to the outfile
+    fprintf(OUTFILE, "\nThe numbers that didn't have enough time to make determination:");
+    for(i = 0; i < initOutOfTime; i++)
+    {
+        fprintf(OUTFILE, " %d", outOfTime[i]);
+    }
+   
 }
 
 int deallocateMem(int shmid, void *shmaddr) 

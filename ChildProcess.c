@@ -35,33 +35,48 @@ int main(int argc, char* argv[])
             perror("exe: Error: shmctl failed to remove the shared memory segment");
         exit(EXIT_FAILURE);
     }
-
-     
-    //printf("Start of Sequence: %d\n", smPtr-> nanoSeconds);
-    //printf("Increment Value: %d\n", smPtr-> i);
-    //printf("ChildID: %d\n", atoi(argv[1]));
-    //printf("Prime Number to Check: %d\n", atoi(argv[2]));
     
+    //Save the starting time to a variable
+    int childStartTime = smPtr-> nanoSeconds;
+   
     int i; 
-    //childID = atoi(argv[1]);
-    //numToCheck = atoi(argv[2]);
-    //printf("%d", childID);
-    //smPtr-> childProcArr = malloc(sizeof(int) * 20);
+    int childID = atoi(argv[2]);
+    int numToCheck = atoi(argv[1]);
+    int primeFlg = 0;
+    
     //Check from 2 to the number we are checking divided by 2 
-
-    printf("%d\n", atoi(argv[2]));
-
-    smPtr-> childProcArr[2] = atoi(argv[2]);
-
-    for(i = 2; i <= sqrt(atoi(argv[2])); i++)
+    for(i = 2; i <= sqrt(numToCheck); i++)
     {
+        //Check if this child has passed the 1 millisecond time limit
+        if(smPtr-> nanoSeconds >= (childStartTime + 1000000))
+        {
+            smPtr-> childProcArr[numToCheck] = -1;
+            sharedMemDetach = deallocateMem(sharedMemSegment, smPtr);
+            //If shmdt returns -1 then it was unsuccessful
+            if(sharedMemDetach == -1)
+            {
+                perror("oss: Error: shmdt failed to detach shared memory\n");
+                exit(EXIT_FAILURE);
+            }
+            return(-1);            
+        }
+
         //If n is divided by any to the number from 2 to numToCheck/2 it isn't prime
-        if((atoi(argv[2])) % i == 0)
-            smPtr-> childProcArr[atoi(argv[1])] = ((atoi(argv[2])) * -1);
-        else
-            smPtr-> childProcArr[atoi(argv[1])] = atoi(argv[2]);
-            
-    } 
+        if(numToCheck % i == 0)
+            primeFlg = 1;
+    }
+
+    /* If the number is not prime add it to the shared mem array 
+       as a negative if it is prime then add it to the array as is */
+    if((numToCheck) % i == 0)
+        smPtr-> childProcArr[childID] = ((numToCheck) * -1);
+    else
+        smPtr-> childProcArr[childID] = (numToCheck);
+        
+    if(primeFlg == 1)
+        return(1);
+    else if(primeFlg == 0)
+        return(0); 
   
     //Detach and remove the shared memeory segment
     sharedMemDetach = deallocateMem(sharedMemSegment, smPtr);
@@ -72,9 +87,6 @@ int main(int argc, char* argv[])
         perror("oss: Error: shmdt failed to detach shared memory\n");
         exit(EXIT_FAILURE);
     }
-
-    return 0;
-
 }
 
 int deallocateMem(int shmid, void *shmaddr) 
