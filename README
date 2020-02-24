@@ -32,8 +32,10 @@ https://github.com/Chaserich1/richards.2
 
 Additional Project Information:
 
-1. When there is a signal that kills the program, the seconds are way to high
-2.  
+1. I print the shared memory childProcArr array values from ChildProcess.c 
+   and so I print the numbers and whether or not they are prime at the top
+   of the output file, followed by the child process start/termination times,
+   and lastly the time that the program completed.  
 
 -------------------------------------------------------------------------------
 

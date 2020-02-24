@@ -25,15 +25,15 @@ int main(int argc, char* argv[])
             case 'n':
                 maxChildren = atoi(optarg);
                 //printf("%d\n", maxChildren);
-                if(maxChildren > 20)
-                {
-                    printf("The max number of children allowed is 20, setting to -n 20");
-                    maxChildren = 20;
-                }
                 break;
             case 's':
                 childLimit = atoi(optarg);
                 //printf("%d\n", childLimit);
+                if(childLimit > 20)
+                {
+                    printf("The max number of children allowed in the system is 20, setting to -s 20");
+                    childLimit = 20;
+                }
                 break;
             case 'b':
                 startOfSeq = atoi(optarg);
@@ -205,7 +205,7 @@ void launchChildren(int maxChildren, int childLimit, int startOfSeq, int increme
             else if(pid == 0) /* Child pid */
             { 
                 //Use execvp to run the oss executable
-                char *args[] = {"./prime", stringArray, childID, NULL};
+                char *args[] = {"./prime", stringArray, childID, outFile, NULL};
                 childExec = execvp(args[0], args);
 
                 //If the exec fails it returns -1 so perror and exit
@@ -252,7 +252,7 @@ void launchChildren(int maxChildren, int childLimit, int startOfSeq, int increme
 
     //Output the completion time to the output file when a children finish
     fprintf(OUTFILE, "The program completed at: %d seconds %u nanoseconds\n", smPtr-> seconds, smPtr-> nanoSeconds);
-
+/*
     //Print the prime array numbers to the output file 
     fprintf(OUTFILE, "The prime numbers are:");
     for(i = 0; i < initPrimeNum; i++)
@@ -271,7 +271,7 @@ void launchChildren(int maxChildren, int childLimit, int startOfSeq, int increme
     {
         fprintf(OUTFILE, " %d", outOfTime[i]);
     }
-   
+  */ 
 }
 
 int deallocateMem(int shmid, void *shmaddr) 

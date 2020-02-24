@@ -24,4 +24,6 @@ struct sharedMemory
 
 struct sharedMemory *smPtr;
 
+FILE* OUTFILE;
+
 #endif

@@ -45,6 +45,7 @@ int main(int argc, char* argv[])
     int childStartTime = smPtr-> nanoSeconds;
    
     int i; 
+    char *outFile = argv[3];
     int childID = atoi(argv[2]);
     int numToCheck = atoi(argv[1]);
     int primeFlg = 0;
@@ -63,7 +64,7 @@ int main(int argc, char* argv[])
                 perror("oss: Error: shmdt failed to detach shared memory\n");
                 exit(EXIT_FAILURE);
             }
-            return(-1);            
+            smPtr-> childProcArr[childID] = -1;          
         }
 
         //If n is divided by any to the number from 2 to numToCheck/2 it isn't prime
@@ -73,16 +74,27 @@ int main(int argc, char* argv[])
 
     /* If the number is not prime add it to the shared mem array 
        as a negative if it is prime then add it to the array as is */
-    if((numToCheck) % i == 0)
-        smPtr-> childProcArr[childID] = ((numToCheck) * -1);
-    else
-        smPtr-> childProcArr[childID] = (numToCheck);
-        
+    if(primeFlg == 1)                                                                                                           smPtr-> childProcArr[childID] = (numToCheck * -1);                                                                  else if(primeFlg == 0)                                                                                                      smPtr-> childProcArr[childID] = numToCheck;    
+  
+    OUTFILE = fopen(outFile, "a"); 
+   
+    if(smPtr-> childProcArr[childID] > 0) 
+        fprintf(OUTFILE, "%d is prime\n", smPtr-> childProcArr[childID]);
+    else if(smPtr-> childProcArr[childID] < -1)
+    {
+        int posVal = ((smPtr-> childProcArr[childID]) * -1);
+        fprintf(OUTFILE, "%d is not prime\n", posVal);
+    }
+    else if(smPtr-> childProcArr[childID] == -1) 
+    {
+        fprintf(OUTFILE, "%d did not have time to make determination", numToCheck);
+    }
+   /*
     if(primeFlg == 1)
         return(1);
     else if(primeFlg == 0)
         return(0);  
- 
+ */
     //Detach and remove the shared memeory segment
     sharedMemDetach = deallocateMem(sharedMemSegment, smPtr);
 
@@ -92,6 +104,9 @@ int main(int argc, char* argv[])
         perror("oss: Error: shmdt failed to detach shared memory\n");
         exit(EXIT_FAILURE);
     }
+    
+    return 0;
+
 }
 
 int deallocateMem(int shmid, void *shmaddr) 
