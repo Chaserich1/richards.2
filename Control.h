@@ -19,8 +19,7 @@
 struct sharedMemory
 {
     int nanoSeconds;
-    int seconds;    
-    int childProcArr[20];
+    int seconds;   
 };
 
 struct sharedMemory* smPtr;
@@ -33,12 +32,16 @@ int deallocateMem(int shmid, void *shmaddr);
 //Prototype for working with the shared memory from master
 void sharedMemoryWork();
 
+//Prototype for forking, execing, and writing to the output file the numbers from the shared mem array
 void launchChildren(int maxChildren, int childLimit, int startOfSeq, int incrementVal, char *outFile);
 
+//Signal handler
 void sigHandler(int sig);
 
+//Each time it loops we add 10000 nanoSeconds and handles adding to seconds 
 void timeIncrementation();
 
+//-h option
 void displayHelpMessage();
 
 #endif

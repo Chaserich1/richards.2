@@ -13,17 +13,16 @@
 #include <sys/ipc.h>
 #include <math.h>
 
-int deallocateMem(int shmid, void *shmaddr);
+//int deallocateMem(int shmid, void *shmaddr);
 
 struct sharedMemory
 {
     int nanoSeconds;
     int seconds;
-    int childProcArr[20];
 };
 
 struct sharedMemory *smPtr;
 
-FILE* OUTFILE;
+
 
 #endif
