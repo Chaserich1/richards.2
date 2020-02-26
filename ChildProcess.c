@@ -59,15 +59,15 @@ int main(int argc, char* argv[])
         //Check if this child has passed the 1 millisecond time limit
         if(smPtr-> nanoSeconds >= (childStartTime + 1000000))
         {
-            smPtr-> childProcArr[numToCheck] = -1;
+            smPtr-> childProcArr[childID] = -1;
+            smPtr-> tooMuchTime[childID] = numToCheck;
             sharedMemDetach = deallocateMem(sharedMemSegment, smPtr);
             //If shmdt returns -1 then it was unsuccessful
             if(sharedMemDetach == -1)
             {
                 perror("prime: Error: shmdt failed to detach shared memory\n");
                 exit(EXIT_FAILURE);
-            }
-            
+            }       
             return (-1);          
         }
 

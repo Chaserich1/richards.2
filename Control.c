@@ -226,16 +226,8 @@ void launchChildren(int maxChildren, int childLimit, int startOfSeq, int increme
         waitingID = waitpid(-1, &status, WNOHANG);      
         
         if(waitingID > 0)
-        {
-            int returnVal = WEXITSTATUS(status); 
+        { 
             fprintf(OUTFILE, "Child ID: %d terminated. | Time: %d seconds, %u nanoseconds\n", waitingID, smPtr-> seconds, smPtr-> nanoSeconds); 
-            
-            //If the child returns -1 then add the number to the out of time array and increment index
-            if(returnVal == -1)
-            {
-                outOfTime[initOutOfTime] = numsToCheck[completedChildren];
-                initOutOfTime++;
-            }
      
             completedChildren++; //A child has completed
             childrenInSystem--; //There is one less child currently running, so we will be able to launch another now
@@ -265,14 +257,17 @@ void launchChildren(int maxChildren, int childLimit, int startOfSeq, int increme
             initNotPrimeNum++;
         }
         //If the value is -1 then it didn't have time for the determination
-        else if(smPtr-> childProcArr[i] == -1) 
+    }
+
+    //Loop through the array that stored the numbers that took too long to determine  
+    for(i = 1; i < maxChildren + 1; i++)
+    {
+        if(smPtr-> tooMuchTime[i] != 0)
         {
-            //fprintf(OUTFILE, "%d did not have time to make determination", outOfTime[1]);
-            outOfTime[initOutOfTime] = smPtr-> childProcArr[i];              
+            outOfTime[initOutOfTime] = smPtr-> tooMuchTime[i];
             initOutOfTime++;
         }
     }
-
 
     //Print the prime array numbers to the output file 
     fprintf(OUTFILE, "The prime numbers are:");

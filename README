@@ -37,7 +37,8 @@ Additional Project Information:
    or not) to from my Control.c and I finally realized it was because I was
    detaching and removing the shared memory from ChildProcess.c...I changed
    it to only detach and not remove until the entire program finishes.
-2. Everything is working according to the project description based on my testing.  
+2. Everything seems to be working according to the project description 
+   based on my testing.  
 
 -------------------------------------------------------------------------------
 
