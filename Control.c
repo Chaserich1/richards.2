@@ -6,9 +6,7 @@
 #include "Control.h"
 
 int main(int argc, char* argv[]) 
-{
-    //flgsPassedIn(argc, argv);
-    
+{   
     int c;
     //Setting the default option values
     int maxChildren = 4, childLimit = 2, startOfSeq = 101, incrementVal = 4;
@@ -31,7 +29,7 @@ int main(int argc, char* argv[])
                 //printf("%d\n", childLimit);
                 if(childLimit > 20)
                 {
-                    printf("The max number of children allowed in the system is 20, setting to -s 20");
+                    printf("The max number of children allowed in the system is 20, setting to -s 20\n");
                     childLimit = 20;
                 }
                 break;
@@ -48,9 +46,8 @@ int main(int argc, char* argv[])
                 //printf("%s\n", outFile);
                 break;
             case '?':
-                fprintf(stderr, "%s: Error: Invalid option, use -h to see the available options.\n", argv[0]);
-                perror("");
-                exit(1); 
+                perror("oss: Error: Invalid option, use -h to see the available options.\n");
+                exit(EXIT_FAILURE); 
         }
     }
     
@@ -81,6 +78,12 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
     key = ftok(".",'m');
     //printf("%d", key);
 
+    if(key == -1)
+    {
+        perror("oss: Error: getting the shared memory key");
+        exit(EXIT_FAILURE);
+    }    
+
     //Allocate the shared memory using shmget
     sharedMemSegment = shmget(key, sizeof(struct sharedMemory), IPC_CREAT | 0644);
 
@@ -108,9 +111,17 @@ void sharedMemoryWork(int maxChildren, int childLimit, int startOfSeq, int incre
     if(argc >= 2) 
         strncpy(sharedMemAttach, argv[1], sizeof(int));
     printf("The segment has the following: %s\n", sharedMemAttach); */
-     
+
+    //Initialize the seconds and nanoSeconds to 0     
     smPtr-> nanoSeconds = 0;
     smPtr-> seconds = 0;    
+
+    //Initialize the shared memory array to all 0s
+    int i;
+    for(i = 0; i < maxChildren; i++)
+    {
+        smPtr-> childProcArr[i] = 0;
+    }    
    
     //Function that lauches the children and writes to the file
     launchChildren(maxChildren, childLimit, startOfSeq, incrementVal, outFile);
@@ -234,52 +245,30 @@ void launchChildren(int maxChildren, int childLimit, int startOfSeq, int increme
     //Output the completion time to the output file when a children finish
     fprintf(OUTFILE, "The program completed at: %d seconds %u nanoseconds\n", smPtr-> seconds, smPtr-> nanoSeconds);
 
-    //Get the key for the array and check for it returning -1
-    key_t arrKey = ftok(".",'a');
-    if(arrKey == -1)
-    {
-        perror("prime: Error: getting the shared memory array key");
-        exit(EXIT_FAILURE);
-    }
-    //Get the shared memory segment and exit if the value is -1
-    int arraySegment = shmget(arrKey, sizeof(int), IPC_CREAT | 0777);
-    if(arraySegment == -1)
-    {
-        perror("prime: Error: getting array memory segment");
-        exit(EXIT_FAILURE);
-    }
-    //Attached the array to shared memory and exit if fails with -1
-    int *childProcArr = (int *)shmat(arraySegment, (void *)0, 0);
-    if(childProcArr == (void *)-1)
-    {
-        perror("prime: Error: failed to attach array memory segment");
-        exit(EXIT_FAILURE);
-    }
-
     //Loop through the shared memory array and add the values to the correct array to be printed at end
     for(i = 1; i < maxChildren + 1; i++)
     {
         //If the value in the sharedmemory array is positive it is prime
-        if(childProcArr[i] > 0)
+        if(smPtr-> childProcArr[i] > 0)
         { 
             //fprintf(OUTFILE, "%d is prime\n", childProcArr[i]);
-            primeNum[initPrimeNum] = childProcArr[i];
+            primeNum[initPrimeNum] = smPtr-> childProcArr[i];
             initPrimeNum++;
         }
         //If the value in the sharedmemory array is negative it is not prime
-        else if(childProcArr[i] < -1)
+        else if(smPtr-> childProcArr[i] < -1)
         {
             //Change the negative value to positive then store in the not prime array so it prints positive
-            int posVal = ((childProcArr[i]) * -1);
+            int posVal = ((smPtr-> childProcArr[i]) * -1);
             //fprintf(OUTFILE, "%d is not prime\n", posVal);
             notPrimeNum[initNotPrimeNum] = posVal;
             initNotPrimeNum++;
         }
         //If the value is -1 then it didn't have time for the determination
-        else if(childProcArr[i] == -1) 
+        else if(smPtr-> childProcArr[i] == -1) 
         {
             //fprintf(OUTFILE, "%d did not have time to make determination", outOfTime[1]);
-            outOfTime[initOutOfTime] = childProcArr[i];              
+            outOfTime[initOutOfTime] = smPtr-> childProcArr[i];              
             initOutOfTime++;
         }
     }
@@ -303,15 +292,6 @@ void launchChildren(int maxChildren, int childLimit, int startOfSeq, int increme
     {
         fprintf(OUTFILE, " %d", outOfTime[i]);
     }
-
-    //Dettach and remove the array from shared memory
-    int arrDetach = deallocateMem(arraySegment, (void *) childProcArr);
-    if(arrDetach == -1)
-    {
-        perror("oss: Error: shmdt failed to detach shared memory array");
-        exit(EXIT_FAILURE);
-    }  
-  
 }
 
 int deallocateMem(int shmid, void *shmaddr) 

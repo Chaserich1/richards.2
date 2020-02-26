@@ -8,7 +8,7 @@
 int main(int argc, char* argv[]) 
 {
 
-    int sharedMemSegment, arrSharedMemDetach, sharedMemDetach;
+    int sharedMemSegment, sharedMemDetach;
     char *sharedMemAttach; 
     //ftok gives us the key based on curent path and 'm' id
     key_t key = ftok(".",'m');
@@ -40,32 +40,10 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
     
-    /* Used for testing signals 
+    /*Used for testing signals 
     for(;;)
         ;
     */
-    
-    //Get the key for the array and check for it returning -1
-    key_t arrKey = ftok(".",'a');
-    if(arrKey == -1) 
-    {
-        perror("prime: Error: getting the shared memory array key");
-        exit(EXIT_FAILURE);
-    }
-    //Get the shared memory segment and exit if the value is -1
-    int arraySegment = shmget(arrKey, sizeof(int), IPC_CREAT | 0777);
-    if(arraySegment == -1)
-    {
-        perror("prime: Error: getting array memory segment");
-        exit(EXIT_FAILURE);
-    }
-    //Attached the array to shared memory and exit if fails with -1
-    int *childProcArr = (int *)shmat(arraySegment, (void *)0, 0);
-    if(childProcArr == (void *)-1)
-    {
-        perror("prime: Error: failed to attach array memory segment");
-        exit(EXIT_FAILURE);
-    }
 
     //Save the starting time to a variable
     int childStartTime = smPtr-> nanoSeconds;
@@ -73,7 +51,7 @@ int main(int argc, char* argv[])
     int i; 
     int childID = atoi(argv[2]);
     int numToCheck = atoi(argv[1]);
-    int primeFlg = 0;
+    int primeFlg = 1;
     
     //Check from 2 to the number we are checking divided by 2 
     for(i = 2; i <= sqrt(numToCheck); i++)
@@ -81,7 +59,7 @@ int main(int argc, char* argv[])
         //Check if this child has passed the 1 millisecond time limit
         if(smPtr-> nanoSeconds >= (childStartTime + 1000000))
         {
-            childProcArr[numToCheck] = -1;
+            smPtr-> childProcArr[numToCheck] = -1;
             sharedMemDetach = deallocateMem(sharedMemSegment, smPtr);
             //If shmdt returns -1 then it was unsuccessful
             if(sharedMemDetach == -1)
@@ -89,26 +67,25 @@ int main(int argc, char* argv[])
                 perror("prime: Error: shmdt failed to detach shared memory\n");
                 exit(EXIT_FAILURE);
             }
-            childProcArr[childID] = -1;
+            
             return (-1);          
         }
 
         //If n is divided by any to the number from 2 to numToCheck/2 it isn't prime
         if(numToCheck % i == 0)
-            primeFlg = 1;
+            primeFlg = 0;
     }
 
     /* If the number is not prime add it to the shared mem array 
        as a negative if it is prime then add it to the array as is */
-    if(primeFlg == 1)
-        childProcArr[childID] = (numToCheck * -1);
-    else if(primeFlg == 0)
-        childProcArr[childID] = numToCheck;     
+    if(primeFlg == 0)
+        smPtr-> childProcArr[childID] = (numToCheck * -1);
+    else if(primeFlg == 1)
+        smPtr-> childProcArr[childID] = numToCheck;     
     
     //Detach from shared memory and check for -1 failure to detach  
     sharedMemDetach = deallocateMem(sharedMemSegment, smPtr);
-    arrSharedMemDetach = deallocateMem(arraySegment, childProcArr);
-    if(sharedMemDetach == -1 || arrSharedMemDetach == -1)
+    if(sharedMemDetach == -1)
     {
         perror("prime: Error: failed to detach shared memory");
         exit(EXIT_FAILURE);

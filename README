@@ -32,10 +32,12 @@ https://github.com/Chaserich1/richards.2
 
 Additional Project Information:
 
-1. I print the shared memory childProcArr array values from ChildProcess.c 
-   and so I print the numbers and whether or not they are prime at the top
-   of the output file, followed by the child process start/termination times,
-   and lastly the time that the program completed.  
+1. I was stuck for a long time trying to figure out why I wasn't able to
+   access my shared memory array that I wrote the pos or neg numbers (prime 
+   or not) to from my Control.c and I finally realized it was because I was
+   detaching and removing the shared memory from ChildProcess.c...I changed
+   it to only detach and not remove until the entire program finishes.
+2. Everything is working according to the project description based on my testing.  
 
 -------------------------------------------------------------------------------
 

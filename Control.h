@@ -19,7 +19,8 @@
 struct sharedMemory
 {
     int nanoSeconds;
-    int seconds;   
+    int seconds;  
+    int childProcArr[1024]; 
 };
 
 struct sharedMemory* smPtr;
